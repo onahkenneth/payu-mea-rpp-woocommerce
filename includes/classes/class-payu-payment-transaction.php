@@ -5,7 +5,7 @@
  * See COPYING.txt for license details.
  */
 
-class PayU_Payment_Redirect extends PayU_Payment_Base {
+class PayU_Payment_Transaction extends PayU_Payment_Base {
     /**
 	 * @var array
 	 */
@@ -27,7 +27,7 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 	/**
 	 * @var bool
 	 */
-	private bool $extended_debug_enable = false;
+	private bool $extended_debug = false;
 	
 	/**
 	 * @var string
@@ -53,6 +53,8 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 	 * @var SoapHeader
 	 */
 	private ?SoapHeader $auth_header = null;
+
+	private ?WC_PayU_XMLParser $xml_parser = null;
 	
 	/**
 	 * @var SoapClient
@@ -82,8 +84,8 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 			$this->soap_password = $config['password'];
 		}
 
-		if (isset($config['extended_debug_enable']) && ($config['extended_debug_enable'] === true)) {
-			$this->extended_debug_enable = true;
+		if (isset($config['extended_debug']) && ($config['extended_debug'] === true)) {
+			$this->extended_debug = true;
 		}
 
 		if (isset($config['safekey']) && (!empty($config['safekey']))) {
@@ -91,13 +93,15 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 		}
 
 		$this->set_soap_wdsl_url();
+		$this->xml_parser = new WC_PayU_XMLParser();
+		$this->soap_client = new SoapClient($this->wdsl_url, ["trace" => 1, "exception" => 0]);
 	}
 	
 	/**
 	* Do the get transaction soap call against the PayU API and returns a url containing the RPP url with reference
 	*
 	* @param array $payload Array containing the data
-	* @return array Transaction response
+	* @return stdClass Transaction response
 	*/
 	public function do_get_transaction($payload = [])
 	{
@@ -128,7 +132,7 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 		} else {
 			$message = "Unspecified error. please contact merchant";
 
-			if($this->extended_debug_enable === true) {
+			if($this->extended_debug === true) {
 				$message = $data['displayMessage'] . ", Details: " . $message = $data['resultMessage'];
 			} elseif(isset($data['displayMessage']) && !empty($data['displayMessage']) ) {
 				$message = $data['displayMessage'];
@@ -140,16 +144,29 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 		}
 		
 	}
+
+	/**
+	 * Do the finalize/capture/cancel/refund transaction soap call against the PayU API and returns a response
+	 *
+	 * @param array $payload Array containing the data
+	 * @return stdClass Transaction response
+	 */
+	public function do_transaction($payload = [])
+	{
+		$response = $this->do_soap_call('doTransaction', $payload);
+
+		return json_decode(json_encode($response['return']));
+	}
 	
 	/**
 	* Do the soap call against the PayU API
 	*
-	* @param string $method The Soap method to call
+	* @param ?string $method The Soap method to call
 	* @param array $payload Array containing data
 	* @return array Returns the soap result in array format
     * @throws Exception
 	*/
-	public function do_soap_call(string $method = null , $payload = [])
+	public function do_soap_call(?string $method = null , $payload = [])
 	{
 		// A couple of validation business ruless before doing the soap call
 		if (empty($payload)) {
@@ -166,9 +183,8 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 			$payload['Safekey'] = $this->safekey;
 		}
 
-		$this->log("------------------   STARTING SOAP CALL: " . $method . "   -----------------------------" . PHP_EOL);
+		$this->log("\r\n------------------   STARTING SOAP CALL: " . $method . "   -----------------------------" . PHP_EOL);
 		
-		$this->soap_client = new SoapClient($this->wdsl_url, ["trace" => 1, "exception" => 0]);
 		$this->soap_client->__setSoapHeaders($this->auth_header);
 
 		$payload = array_merge($payload, ['Api' => $this->api_version]);
@@ -241,10 +257,16 @@ class PayU_Payment_Redirect extends PayU_Payment_Base {
 	private function log_soap_call(string $method): void
 	{
 		if (is_object($this->soap_client)) {
-			$this->log("Soap REQUEST HEADERS: " . $method, "\r\n".$this->soap_client->__getLastRequestHeaders());
-			$this->log("Soap REQUEST: " . $method, "\r\n".$this->soap_client->__getLastRequest());
-			$this->log("SOAP RESPONSE HEADERS: " . $method, "\r\n".$this->soap_client->__getLastResponseHeaders());
-			$this->log("SOAP RESPONSE: " . $method, "\r\n".$this->soap_client->__getLastResponse());
+			$this->log("SOAP REQUEST HEADERS: " . $method, "\r\n" . $this->soap_client->__getLastRequestHeaders());
+			$this->log(
+				"SOAP REQUEST: " . $method,
+				"\r\n" . $this->xml_parser->prettyPrint($this->soap_client->__getLastRequest())
+			);
+			$this->log("SOAP RESPONSE HEADERS: " . $method, "\r\n" . $this->soap_client->__getLastResponseHeaders());
+			$this->log(
+				"SOAP RESPONSE: " . $method,
+				"\r\n" . $this->xml_parser->prettyPrint($this->soap_client->__getLastResponse())
+			);
 		}
 	}
 }

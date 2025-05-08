@@ -60,11 +60,9 @@ abstract class PayU_Payment_Base {
 			if (empty($string_to_log)) {
 				throw new EmptyLogStringException("Please specify a value to log");
 			}
-			
-			$string_to_log = "'" . date('Y-m-d H:i:s') . "','" . $string_to_log . "'";
 
 			if (!empty($instruction_to_log)) {
-				$string_to_log .= ",'" . $instruction_to_log . "'";
+				$string_to_log .= $instruction_to_log;
 			}
 
 			$string_to_log .= PHP_EOL;

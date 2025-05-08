@@ -7,6 +7,6 @@ declare(strict_types=1);
  * See COPYING.txt for license details.
  */
 
-class EmptyLogStringException extends Exception
+class InvalidPaymentMethodException extends Exception
 {
 }
