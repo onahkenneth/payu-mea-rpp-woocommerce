@@ -1,0 +1,132 @@
+.payu-admin-section-li-header {
+    width: 100%;
+    font-weight: bold;
+}
+
+.payu-admin-section-li-header-small {
+    width: 100%;
+    font-weight: bold;
+    font-size: small;
+    margin-bottom: 0px;
+}
+
+.payu-admin-section-li {
+    width: 100%;
+}
+
+.payu-admin-section-li-small {
+    width: 100%;
+    font-size: small;
+    margin-top: 0px;
+}
+
+.payu-full-width,
+.payu-full-width .button {
+    width: 100%;
+    display: block;
+    text-align: center;
+    clear: both;
+}
+
+.payu-balance {
+    margin-bottom: 0;
+}
+
+.payu-balance.last {
+    margin-bottom: 5px;
+}
+
+.payu-balance:after {
+    clear: both;
+    content: "";
+    display: table;
+}
+
+.payu-balance__label,
+.payu-balance__amount {
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    float: left;
+    padding: 7px 10px;
+    text-transform: uppercase;
+    font-size: 10px;
+    color: #8a8a8a;
+}
+
+.payu-balance__label {
+    font-weight: bold;
+    width: 60%;
+    border-right: 2.5px solid #FFF;
+}
+
+.payu-balance__amount {
+    border-right: 0;
+    width: 40%;
+    border-left: 2.5px solid #FFF;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+}
+
+.payu-balance__currency {
+    margin-right: 10px;
+}
+
+.payu-balance.last .payu-balance__currency {
+    margin-right: 0;
+}
+
+.payu-admin-card-logo {
+    text-align: center;
+    margin-right: 25px;
+    max-width: 100px;
+}
+
+.payu-partly_capture_amount,
+.payu-partly_refund_amount {
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    float: left;
+    padding: 4px 10px;
+    text-transform: uppercase;
+    font-size: 10px;
+    color: #8a8a8a;
+    border-right: 0;
+    width: 40%;
+    border-left: 2.5px solid #FFF;
+    display: -webkit-box;
+    /* OLD - iOS 6-, Safari 3.1-6, BB7 */
+    display: -ms-flexbox;
+    /* TWEENER - IE 10 */
+    display: -webkit-flex;
+    /* NEW - Safari 6.1+. iOS 7.1+, BB10 */
+    display: flex;
+    /* NEW, Spec - Firefox, Chrome, Opera */
+}
+
+.payu-capture_partly_amount-field,
+.payu-refund_partly_amount-field {
+    width: 90px;
+    font-size: small;
+    max-height: 20px;
+    min-height: 1px !important;
+    text-align: center;
+}
+
+#payment .wc_payment_methods li label {
+    display: flex !important;
+    align-items: center;
+}
+
+#payment .wc_payment_methods li label .payu-logos {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 0 0 auto;
+    justify-content: flex-end;
+    max-width: 300px;
+}
+
+#payment .wc_payment_methods li label .payu-logos .payu-logo img {
+    margin: .25rem;
+}
