@@ -1,0 +1,439 @@
+# Copyright (C) 2025 PayU MEA
+# This file is distributed under the same license as the WooCommerce PayU Gateway plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce PayU Gateway 2.0.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-begateway-payment/\n"
+"Last-Translator: admin@ecomcharge.com\n"
+"Language-Team: admin@ecomcharge.com\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-05-08T08:01:07+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
+"X-Domain: woocommerce-gateway-payu\n"
+
+#. Plugin Name of the plugin
+#: woocommerce-gateway-payu.php
+msgid "WooCommerce PayU Gateway"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: woocommerce-gateway-payu.php
+msgid "https://wordpress.org/plugins/woocommerce-gateway-payu/"
+msgstr ""
+
+#. Description of the plugin
+#: woocommerce-gateway-payu.php
+msgid "Accept payments using PayU"
+msgstr ""
+
+#. Author of the plugin
+#: woocommerce-gateway-payu.php
+msgid "PayU MEA"
+msgstr ""
+
+#. Author URI of the plugin
+#: woocommerce-gateway-payu.php
+msgid "https://southafrica.payu.com/"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:89
+msgid "PayU Secure Payments"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:220
+msgid "Redirecting to PayU <br />"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:408
+msgid "Order is already completed"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:435
+msgid "Payment completed: <br />"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:449
+#: includes/class-wc-gateway-payu.php:451
+msgid "Payment Failed:"
+msgstr ""
+
+#: includes/class-wc-gateway-payu.php:454
+msgid "<strong>Payment unsuccessful: </strong><br />"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method-card.php:19
+#: includes/payment-methods/class-wc-payu-payment-method-card.php:22
+msgid "Credit/Debit Card"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method-card.php:23
+msgid "Pay with Credit/Debit Card."
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method-dm.php:22
+#: includes/payment-methods/class-wc-payu-payment-method-dm.php:25
+#: includes/settings-payu.php:80
+msgid "Discovery Miles"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method-dm.php:26
+msgid "Pay with Discovery Miles."
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:312
+#: includes/payment-methods/class-wc-payu-payment-method.php:363
+#: includes/payment-methods/class-wc-payu-payment-method.php:410
+msgid "Invalid payment method"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:318
+msgid "No transaction reference to capture"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:322
+msgid "Transaction is already captured"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:330
+msgid "Capture completed"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:331
+#: includes/payment-methods/class-wc-payu-payment-method.php:430
+msgid "Transaction ID: "
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:346
+#: includes/payment-methods/class-wc-payu-payment-method.php:350
+msgid "Error to capture transaction"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:347
+#: includes/payment-methods/class-wc-payu-payment-method.php:392
+#: includes/payment-methods/class-wc-payu-payment-method.php:449
+msgid "Error: "
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:369
+msgid "No transaction reference to cancel"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:377
+msgid "Void complete"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:378
+msgid "Transaction UID: "
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:385
+msgid "Order cancelled by merchant."
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:391
+#: includes/payment-methods/class-wc-payu-payment-method.php:396
+msgid "Error to void transaction"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:417
+msgid "No transaction reference to refund"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:421
+msgid "Transaction has not been captured. Refund failed!"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:426
+msgid "Refunded from Woocommerce"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:429
+msgid "Refund completed"
+msgstr ""
+
+#: includes/payment-methods/class-wc-payu-payment-method.php:448
+#: includes/payment-methods/class-wc-payu-payment-method.php:453
+msgid "Error to refund transaction"
+msgstr ""
+
+#: includes/settings-payu.php:8
+msgid "PAYMENT"
+msgstr ""
+
+#: includes/settings-payu.php:9
+msgid "RESERVE"
+msgstr ""
+
+#: includes/settings-payu.php:14
+msgid "Enable payment gateway."
+msgstr ""
+
+#: includes/settings-payu.php:20
+msgid "Test mode"
+msgstr ""
+
+#: includes/settings-payu.php:22
+msgid "(checked = sandbox, unchecked = production)"
+msgstr ""
+
+#: includes/settings-payu.php:24
+msgid "PayU environment for transactions."
+msgstr ""
+
+#: includes/settings-payu.php:27
+msgid "Title:"
+msgstr ""
+
+#: includes/settings-payu.php:29
+msgid "Payment method name visible during checkout."
+msgstr ""
+
+#: includes/settings-payu.php:30
+msgid "PayU Gateway"
+msgstr ""
+
+#: includes/settings-payu.php:34
+msgid "Default Method Title:"
+msgstr ""
+
+#: includes/settings-payu.php:36
+msgid "Title for default payment method during checkout. Only shortcode checkout"
+msgstr ""
+
+#: includes/settings-payu.php:37
+msgid "Credit/Debit Card, eBucks and EFT Pro"
+msgstr ""
+
+#: includes/settings-payu.php:41
+msgid "Description:"
+msgstr ""
+
+#: includes/settings-payu.php:43
+msgid "Description of payment method(s) visible during checkout."
+msgstr ""
+
+#: includes/settings-payu.php:44
+msgid "Payment method(s)"
+msgstr ""
+
+#: includes/settings-payu.php:47
+msgid "SafeKey"
+msgstr ""
+
+#: includes/settings-payu.php:49
+#: includes/settings-payu.php:54
+#: includes/settings-payu.php:59
+#: includes/settings-payu.php:101
+#: includes/settings-payu.php:106
+#: includes/settings-payu.php:111
+msgid "Given to Merchant by PayU"
+msgstr ""
+
+#: includes/settings-payu.php:52
+msgid "SOAP Username"
+msgstr ""
+
+#: includes/settings-payu.php:57
+msgid "SOAP Password"
+msgstr ""
+
+#: includes/settings-payu.php:62
+msgid "Currency"
+msgstr ""
+
+#: includes/settings-payu.php:64
+msgid "Supported Currencies"
+msgstr ""
+
+#: includes/settings-payu.php:65
+msgid "ZAR"
+msgstr ""
+
+#: includes/settings-payu.php:68
+msgid "Payment Method"
+msgstr ""
+
+#: includes/settings-payu.php:70
+msgid "Supported Payment Methods"
+msgstr ""
+
+#: includes/settings-payu.php:71
+msgid "CREDITCARD"
+msgstr ""
+
+#: includes/settings-payu.php:74
+#: includes/settings-payu.php:86
+msgid "Transaction Type"
+msgstr ""
+
+#: includes/settings-payu.php:76
+#: includes/settings-payu.php:88
+msgid "Supported Transaction Types"
+msgstr ""
+
+#: includes/settings-payu.php:82
+msgid "Enable separate configuration for Discovery Miles."
+msgstr ""
+
+#: includes/settings-payu.php:92
+msgid "Discovery Miles Title:"
+msgstr ""
+
+#: includes/settings-payu.php:94
+msgid "Title which the user sees during checkout."
+msgstr ""
+
+#: includes/settings-payu.php:95
+msgid "Pay with Discovery Miles"
+msgstr ""
+
+#: includes/settings-payu.php:99
+msgid "Discovery Miles SafeKey"
+msgstr ""
+
+#: includes/settings-payu.php:104
+msgid "Discovery Miles Username"
+msgstr ""
+
+#: includes/settings-payu.php:109
+msgid "Discovery Miles Password"
+msgstr ""
+
+#: includes/settings-payu.php:114
+msgid "Debug Log"
+msgstr ""
+
+#: includes/settings-payu.php:116
+msgid "Enable logging"
+msgstr ""
+
+#: includes/settings-payu.php:118
+msgid "Default logging stored inside <code>wp-content/uploads/wc-logs/payu-%</code>"
+msgstr ""
+
+#: includes/settings-payu.php:121
+msgid "Extended Debug Enable"
+msgstr ""
+
+#: includes/settings-payu.php:123
+msgid "Enable PayU API extended logging"
+msgstr ""
+
+#: includes/settings-payu.php:125
+msgid "Log PayU API request, response and headers"
+msgstr ""
+
+#: templates/admin/metabox-order.php:20
+msgid "Order is cancelled"
+msgstr ""
+
+#: templates/admin/metabox-order.php:26
+msgid "Remaining balance"
+msgstr ""
+
+#: templates/admin/metabox-order.php:37
+msgid "Total authorized"
+msgstr ""
+
+#: templates/admin/metabox-order.php:48
+msgid "Total captured"
+msgstr ""
+
+#: templates/admin/metabox-order.php:59
+msgid "Total refunded"
+msgstr ""
+
+#: templates/admin/metabox-order.php:75
+msgid "Capture full amount"
+msgstr ""
+
+#: templates/admin/metabox-order.php:78
+msgid "You are about to CAPTURE this payment"
+msgstr ""
+
+#: templates/admin/metabox-order.php:79
+msgid "Capture full amount (%s)"
+msgstr ""
+
+#: templates/admin/metabox-order.php:90
+msgid "You are about to CANCEL this payment"
+msgstr ""
+
+#: templates/admin/metabox-order.php:93
+msgid "Cancel transaction"
+msgstr ""
+
+#: templates/admin/metabox-order.php:103
+msgid "Partly capture"
+msgstr ""
+
+#: templates/admin/metabox-order.php:107
+msgid "Capture amount"
+msgstr ""
+
+#: templates/admin/metabox-order.php:117
+msgid "Capture specified amount"
+msgstr ""
+
+#: templates/admin/metabox-order.php:130
+msgid "Refund amount"
+msgstr ""
+
+#: templates/admin/metabox-order.php:143
+msgid "Refund specified amount"
+msgstr ""
+
+#: templates/admin/metabox-order.php:151
+msgid "Payment method"
+msgstr ""
+
+#: templates/admin/metabox-order.php:157
+msgid "Transaction UID"
+msgstr ""
+
+#: templates/admin/metabox-order.php:164
+msgid "Card number"
+msgstr ""
+
+#: templates/admin/metabox-order.php:170
+msgid "Card brand"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:245
+msgid "Settings"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:246
+msgid "Support"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:247
+msgid "Docs"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:303
+msgid "PayU Transactions"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:429
+msgid "Capture success"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:452
+msgid "Order already cancelled"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:466
+msgid "Cancel success"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:496
+msgid "Refund success"
+msgstr ""
+
+#: woocommerce-gateway-payu.php:528
+msgid "Capture partly success"
+msgstr ""
