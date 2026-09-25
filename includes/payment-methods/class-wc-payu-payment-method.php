@@ -430,6 +430,26 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
     }
 
     /**
+     * Processes a refund made from the WooCommerce order items refund form.
+     *
+     * WooCommerce calls this for "Refund via <gateway>"; the base implementation returns
+     * false, which surfaces as a generic gateway API error. It shares the metabox refund logic.
+     *
+     * @param int        $order_id The order ID.
+     * @param float|null $amount   The amount to refund.
+     * @param string     $reason   The refund reason entered by the admin.
+     * @return bool|WP_Error True on success, or the reason the refund failed.
+     */
+    public function process_refund($order_id, $amount = null, $reason = '')
+    {
+        if (null === $amount || (float) $amount <= 0) {
+            return new WP_Error('payu_error', __('Refund amount must be greater than zero.', 'woocommerce-gateway-payu'));
+        }
+
+        return $this->refund_payment($order_id, (float) $amount);
+    }
+
+    /**
      * Refund payment
      *
      * @param int $order_id
