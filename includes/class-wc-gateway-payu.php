@@ -151,14 +151,73 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
     }
 
     /**
+     * Returns every currency supported by the gateway's payment methods.
+     *
+     * @return string[]
+     */
+    public function get_supported_currencies()
+    {
+        $currencies = [];
+
+        foreach ($this->payment_methods as $payment_method) {
+            $currencies = array_merge($currencies, (array) $payment_method->get_supported_currencies());
+        }
+
+        return array_values(array_unique($currencies));
+    }
+
+    /**
+     * Returns the configured currency code, validated against the amount being charged.
+     *
+     * @param WC_Order|null $order The order being charged, or null to validate against the store currency.
+     * @return string The validated currency code.
+     * @throws CurrencyMismatchException When the configured currency is unsupported or does not match the amount.
+     */
+    public function get_currency_code($order = null)
+    {
+        $configured = $this->settings['currency'] ?? '';
+        $expected = $order instanceof WC_Order ? $order->get_currency() : get_woocommerce_currency();
+        $error = WC_PayU_Currency::get_error($configured, $expected, $this->get_supported_currencies());
+
+        if ('' !== $error) {
+            throw new CurrencyMismatchException($error);
+        }
+
+        return WC_PayU_Currency::normalize($configured);
+    }
+
+    /**
+     * Validates and normalises the currency setting before it is saved.
+     *
+     * Rejecting the value here surfaces a misconfiguration in the admin instead of
+     * letting PayU decline every transaction made with it.
+     *
+     * @param string $key The field key.
+     * @param string $value The submitted value.
+     * @return string The normalised currency, or the previously saved one when the submitted value is invalid.
+     */
+    public function validate_currency_field($key, $value)
+    {
+        $currency = WC_PayU_Currency::normalize($value);
+        $error = WC_PayU_Currency::get_error($currency, get_woocommerce_currency(), $this->get_supported_currencies());
+
+        if ('' !== $error) {
+            WC_Admin_Settings::add_error($error);
+            return $this->get_option($key);
+        }
+
+        return $currency;
+    }
+
+    /**
      * Process the payment and return the result
      */
     public function process_payment($order_id)
     {
-        $method = $_POST['payment_method'];
-
         try {
             $order = new WC_Order($order_id);
+            // Block checkout replaces $_POST with gateway payment data, so read the chosen gateway from the order.
+            $method = $order->get_payment_method();
             $safekey = $this->settings['safekey'];
 
             // Discovery Miles separate login credentials prefix
@@ -196,14 +255,10 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             $txnData = $this->get_transaction_data($config, $order);
             $txnData['Safekey'] = $safekey;
 
-            if ($method === WC_PayU_Payment_Methods::CARD) {
-                $txnData['TransactionType'] = $this->transaction_type;
-            } else {
-                $this->transaction_type = $this->dm_transaction_type;
-                $txnData['TransactionType'] = $this->transaction_type;
-            }
+            $transaction_type = $this->get_transaction_type_for_method($method);
+            $txnData['TransactionType'] = $transaction_type;
 
-            $order->update_meta_data('_payu_transaction_type', $this->transaction_type);
+            $order->update_meta_data('_payu_transaction_type', $transaction_type);
 
             // Do setTransaction
             $transaction = new PayU_Payment_Transaction($config);
@@ -220,15 +275,24 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $order->add_order_note(__('Redirecting to PayU <br />' . $set_transaction_notes, 'woocommerce-gateway-payu'));
                 $order->update_status('pending', '', true);
             }
-        } catch (Exception $e) {
-            $message = $e->getMessage();
-            $error_message = ' - ' . $message . "<br /><br />";
-            $this->log($error_message, 'critical');
+        } catch (PayUTransactionException $e) {
+            $this->log(
+                sprintf(' - Order %s: %s [%s] %s', $order_id, $e->getMessage(), $e->get_result_code(), $e->get_result_message()),
+                'critical'
+            );
 
-            return [
-                'result' => 'failure',
-                'redirect' => $order->get_checkout_payment_url()
-            ];
+            // Classic, pay-for-order and block checkout all show a thrown exception's message to the customer.
+            // Tags are stripped rather than escaped: WooCommerce escapes notices itself, so escaping here would double-encode.
+            throw new Exception(wp_strip_all_tags($e->getMessage()), 0, $e);
+        } catch (Exception $e) {
+            $this->log(sprintf(' - Order %s: %s', $order_id, $e->getMessage()), 'critical');
+
+            // Other failures (SOAP faults, configuration errors) are not written for customers.
+            throw new Exception(
+                __('We could not start your PayU payment. Please try again or choose another payment method.', 'woocommerce-gateway-payu'),
+                0,
+                $e
+            );
         }
 
         return [
@@ -413,7 +477,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             if ($this->is_payment_successful()) {
                 $transaction_notes = "PayU Reference: " . $this->get_payu_reference() . "<br /> ";
 
-                $transaction_notes .= $this->get_payment_method_details($transaction_notes);
+                $transaction_notes = $this->get_payment_method_details($transaction_notes);
 
                 if ($this->get_recurring_details() != null && is_array($this->get_recurring_details())) {
                     $transaction_notes .= "<br /><br />Recurring Details:";
@@ -430,9 +494,9 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $order->payment_complete();
                 $woocommerce->cart->empty_cart();
 
+                // Transaction details are for the admin order notes only, never the storefront.
                 if ('yes' === $this->debug) {
                     $this->log->add('PayU', 'Payment complete.');
-                    wc_add_notice(__('Payment completed: <br />', 'woocommerce-gateway-payu') . $transaction_notes, 'success');
                 }
 
                 wp_redirect($this->get_return_url($order));
@@ -550,7 +614,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $transaction_notes .= "Merchant Reference : " . $this->get_merchant_reference() . "<br />";
                 $transaction_notes .= "PayU Reference: " . $this->get_payu_reference() . "<br />";
                 $transaction_notes .= "PayU Payment Status: " . $this->get_transaction_state() . "<br /><br />";
-                $transaction_notes .= $this->get_payment_method_details($transaction_notes);
+                $transaction_notes = $this->get_payment_method_details($transaction_notes);
 
                 $this->save_payu_transaction_data($order);
 
@@ -578,6 +642,14 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         }
     }
 
+    /**
+     * Capture transaction
+     *
+     * @param string $transaction_uid The transaction uid.
+     * @param string $order_id The order id.
+     * @param float $amount The amount to capture.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
+     */
     public function capture_transaction($transaction_uid, $order_id, $amount)
     {
         $config = $this->get_configuration();
@@ -592,7 +664,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ],
             'Creditcard' => [
                 'amountInCents' => $amount * 100,
@@ -606,6 +678,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
      * @param string $transaction_uid The transaction uid.
      * @param string $order_id The order id.
      * @param float $amount The amount to refund.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
      */
     public function refund_transaction($transaction_uid, $order_id, $amount)
     {
@@ -621,7 +694,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ]
         ]);
     }
@@ -632,6 +705,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
      * @param string $transaction_uid The transaction uid.
      * @param string $order_id The order id.
      * @param float $amount The amount to void.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
      */
     public function void_transaction($transaction_uid, $order_id, $amount)
     {
@@ -647,7 +721,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ],
             'Creditcard' => [
                 'amountInCents' => $amount * 100,
@@ -861,7 +935,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         $float_amount = $woocommerce_format * 100;
         $basket['amountInCents'] = (int) $float_amount;
         $basket['description'] = 'Order No:' . (string)$order_id;
-        $basket['currencyCode'] = $this->settings['currency'];
+        $basket['currencyCode'] = $this->get_currency_code($order);
 
         //Add Basket
         $txnData = array_merge($txnData, ['Basket' => $basket]);
@@ -1158,6 +1232,25 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         return $order->get_meta('_payu_transaction_type', true);
     }
 
+    /**
+     * Returns the configured transaction type for the checkout payment method.
+     *
+     * Discovery Miles has its own Transaction Type setting; every other method uses the main one.
+     *
+     * @param string|null $method The gateway ID posted at checkout, e.g. payu_discoverymiles.
+     * @return string PAYMENT or RESERVE.
+     */
+    private function get_transaction_type_for_method(?string $method): string
+    {
+        $is_discovery_miles = in_array($method, [WC_PayU_Payment_Methods::DISCOVERY_MILES, 'payu_discoverymiles'], true);
+
+        if ($is_discovery_miles && '' !== $this->dm_transaction_type) {
+            return $this->dm_transaction_type;
+        }
+
+        return $this->transaction_type;
+    }
+
     private function validate_amount_paid(): bool
     {
         $amount_due = $this->get_total_due();
@@ -1174,7 +1267,11 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             $this->save_card_id($order);
         }
 
-        if ('RESERVE' == $this->transaction_type) {
+        // Use the type sent to PayU for this order: only RESERVE leaves the payment awaiting capture.
+        // PAYMENT authorises and captures in one leg. Orders without the meta fall back to the setting.
+        $transaction_type = $this->get_transaction_type($order) ?: $this->transaction_type;
+
+        if ('RESERVE' === $transaction_type) {
             $order->update_meta_data('_payu_transaction_captured', 'no');
             $order->update_meta_data('_payu_transaction_captured_amount', 0);
         } else {

@@ -9,6 +9,24 @@ $order_tx_type = [
     'RESERVE' => __('RESERVE', 'woocommerce-gateway-payu'),
 ];
 
+/**
+ * Only offer currencies the payment methods can actually settle.
+ *
+ * This file is included from WC_Gateway_PayU::init_form_fields(), so $this is the
+ * gateway and its payment methods are already built.
+ */
+$wc_currencies = get_woocommerce_currencies();
+$currency_options = [];
+
+foreach ($this->get_supported_currencies() as $currency_code) {
+    $currency_options[$currency_code] = isset($wc_currencies[$currency_code])
+        ? sprintf('%s (%s)', $currency_code, $wc_currencies[$currency_code])
+        : $currency_code;
+}
+
+$store_currency = WC_PayU_Currency::normalize(get_woocommerce_currency());
+$default_currency = isset($currency_options[$store_currency]) ? $store_currency : WC_PayU_Currency::DEFAULT_CURRENCY;
+
 $settings = [
     'enabled' => [
         'title' => __('Enable payment gateway.', 'woocommerce-gateway-payu'),
@@ -60,9 +78,10 @@ $settings = [
     ],
     'currency' => [
         'title' => __('Currency', 'woocommerce-gateway-payu'),
-        'type' => 'text',
-        'description' =>  __('Supported Currencies', 'woocommerce-gateway-payu'),
-        'default' => __('ZAR', 'woocommerce-gateway-payu'),
+        'type' => 'select',
+        'description' =>  __('The currency PayU transacts in. Only currencies the payment methods support are listed, and the selection must match your store currency.', 'woocommerce-gateway-payu'),
+        'default' => $default_currency,
+        'options' => $currency_options,
     ],
     'payment_method' => [
         'title' => __('Payment Method', 'woocommerce-gateway-payu'),
@@ -75,6 +94,11 @@ $settings = [
         'type' => 'select',
         'description' =>  __('Supported Transaction Types', 'woocommerce-gateway-payu'),
         'options' => $order_tx_type,
+    ],
+    'dm_divider' => [
+        'title' => '',
+        'type' => 'title',
+        'class' => 'payu-settings-divider',
     ],
     'dm_enabled' => [
         'title' => __('Discovery Miles', 'woocommerce-gateway-payu'),
@@ -109,6 +133,11 @@ $settings = [
         'title' => __('Discovery Miles Password', 'woocommerce-gateway-payu'),
         'type' => 'text',
         'description' => __('Given to Merchant by PayU', 'woocommerce-gateway-payu'),
+    ],
+    'debug_divider' => [
+        'title' => '',
+        'type' => 'title',
+        'class' => 'payu-settings-divider',
     ],
     'debug' => [
         'title' => __('Debug Log', 'woocommerce-gateway-payu'),

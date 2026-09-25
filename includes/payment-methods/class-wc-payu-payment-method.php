@@ -301,6 +301,25 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
     }
 
     /**
+     * Returns an error when the configured currency cannot be used for the order.
+     *
+     * @param WC_Order $order The order being captured, voided or refunded.
+     * @return WP_Error|null The error, or null when the currency is valid.
+     */
+    protected function get_currency_error($order)
+    {
+        try {
+            $this->get_currency_code($order);
+        } catch (CurrencyMismatchException $e) {
+            $this->log('Issue: ' . $e->getMessage() . PHP_EOL . ' -- ' . __FILE__ . ' - Line:' . __LINE__);
+
+            return new WP_Error('payu_error', $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
      * Capture payment when the order is changed from on-hold to complete or processing
      *
      * @param $order_id int
@@ -311,6 +330,13 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
         if ($this->id != $order->get_payment_method()) {
             return new WP_Error('payu_error', __('Invalid payment method', 'woocommerce-gateway-payu'));
         }
+
+        $currency_error = $this->get_currency_error($order);
+
+        if (is_wp_error($currency_error)) {
+            return $currency_error;
+        }
+
         $transaction_uid = $this->get_transaction_id($order);
         $captured = $order->get_meta('_payu_transaction_captured', true);
 
@@ -363,6 +389,12 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
             return new WP_Error('payu_error', __('Invalid payment method', 'woocommerce-gateway-payu'));
         }
 
+        $currency_error = $this->get_currency_error($order);
+
+        if (is_wp_error($currency_error)) {
+            return $currency_error;
+        }
+
         $transaction_uid = $this->get_transaction_id($order);
 
         if (!$transaction_uid) {
@@ -398,6 +430,26 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
     }
 
     /**
+     * Processes a refund made from the WooCommerce order items refund form.
+     *
+     * WooCommerce calls this for "Refund via <gateway>"; the base implementation returns
+     * false, which surfaces as a generic gateway API error. It shares the metabox refund logic.
+     *
+     * @param int        $order_id The order ID.
+     * @param float|null $amount   The amount to refund.
+     * @param string     $reason   The refund reason entered by the admin.
+     * @return bool|WP_Error True on success, or the reason the refund failed.
+     */
+    public function process_refund($order_id, $amount = null, $reason = '')
+    {
+        if (null === $amount || (float) $amount <= 0) {
+            return new WP_Error('payu_error', __('Refund amount must be greater than zero.', 'woocommerce-gateway-payu'));
+        }
+
+        return $this->refund_payment($order_id, (float) $amount);
+    }
+
+    /**
      * Refund payment
      *
      * @param int $order_id
@@ -408,6 +460,12 @@ class WC_PayU_Payment_Method extends WC_Payment_Gateway
 
         if ($this->id != $order->get_payment_method()) {
             return new WP_Error('payu_error', __('Invalid payment method', 'woocommerce-gateway-payu'));
+        }
+
+        $currency_error = $this->get_currency_error($order);
+
+        if (is_wp_error($currency_error)) {
+            return $currency_error;
         }
 
         $transaction_uid = $this->get_transaction_id($order);

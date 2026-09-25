@@ -130,3 +130,9 @@
 #payment .wc_payment_methods li label .payu-logos .payu-logo img {
     margin: .25rem;
 }
+
+.wc-settings-sub-title.payu-settings-divider {
+    margin: 1.5em 0;
+    padding: 0;
+    border-top: 1px solid #c3c4c7;
+}

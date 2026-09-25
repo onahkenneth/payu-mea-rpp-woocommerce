@@ -20,8 +20,8 @@ class WC_PayU_Payment_Method_Dm extends WC_PayU_Payment_Method
         
         $this->payu_id = self::PAYU_ID;
         $this->title = __('Discovery Miles', 'woocommerce-gateway-payu');
-        $this->supported_currencies = ['ZAR', 'NGN'];
-        $this->supported_countries = ['ZA', 'NG'];
+        $this->supported_currencies = ['ZAR'];
+        $this->supported_countries = ['ZA'];
         $this->label = __('Discovery Miles', 'woocommerce-gateway-payu');
         $this->description = __('Pay with Discovery Miles.', 'woocommerce-gateway-payu');
     }

@@ -49,6 +49,8 @@ class WC_PayU
 
         add_action('add_meta_boxes', [$this, 'add_meta_boxes'], 10, 2);
 
+        add_action('woocommerce_before_thankyou', [$this, 'output_thankyou_notices']);
+
         add_filter(
             'plugin_action_links_' . plugin_basename(__FILE__),
             [
@@ -100,6 +102,7 @@ class WC_PayU
 
         if (is_admin()) {
             add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_scripts']);
+            add_action('admin_notices', [$this, 'currency_setting_notice']);
         }
     }
 
@@ -131,11 +134,14 @@ class WC_PayU
     {
         require_once dirname(__FILE__) . '/includes/exceptions/empty-log-string-exception.php';
         require_once dirname(__FILE__) . '/includes/exceptions/invalid-payment-method-exception.php';
+        require_once dirname(__FILE__) . '/includes/exceptions/currency-mismatch-exception.php';
+        require_once dirname(__FILE__) . '/includes/exceptions/payu-transaction-exception.php';
 
         require_once dirname(__FILE__) . '/includes/constants/class-wc-payu-payment-methods.php';
 
         require_once dirname(__FILE__) . '/includes/class-wc-payu-mode.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-helper.php';
+        require_once dirname(__FILE__) . '/includes/class-wc-payu-currency.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-utils.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-xml-parser.php';
         require_once dirname(__FILE__) . '/includes/class-wc-gateway-payu.php';
@@ -211,16 +217,96 @@ class WC_PayU
             $methods[] = $main_gateway;
         }
 
-        $payment_methods = $main_gateway->payment_methods;
-
-        if (is_admin() && isset($_GET['section']) && $_GET['section'] === 'wc_gateway_payu') {
-            unset($payment_methods[WC_PayU_Payment_Methods::CARD]);
-            unset($payment_methods[WC_PayU_Payment_Methods::DISCOVERY_MILES]);
+        // Card and Discovery Miles are configured inside "PayU Secure Payments",
+        // so they must not be listed as separate gateways on the Payments settings screens.
+        if ($this->is_payments_settings_screen()) {
+            return $methods;
         }
 
-        $methods = array_merge($methods, $payment_methods);
+        return array_merge($methods, $main_gateway->payment_methods);
+    }
 
-        return $methods;
+    /**
+     * Whether the current request is the WooCommerce Payments settings tab
+     * (the gateway list or any gateway's settings section).
+     *
+     * @return bool
+     */
+    private function is_payments_settings_screen()
+    {
+        return is_admin()
+            && isset($_GET['page'], $_GET['tab'])
+            && 'wc-settings' === sanitize_key(wp_unslash($_GET['page']))
+            && 'checkout' === sanitize_key(wp_unslash($_GET['tab']));
+    }
+
+    /**
+     * Prints notices queued by the PayU return callback on the order received page.
+     *
+     * WooCommerce does not print notices on the thank-you page, and Storefront skips
+     * them on checkout pages, so they would otherwise only appear on the next page load.
+     *
+     * @param int $order_id The order being confirmed.
+     * @return void
+     */
+    public function output_thankyou_notices($order_id)
+    {
+        $order = wc_get_order($order_id);
+
+        if (!$order || 0 !== strpos($order->get_payment_method(), WC_Gateway_PayU::ID)) {
+            return;
+        }
+
+        woocommerce_output_all_notices();
+    }
+
+    /**
+     * Returns the URL of the PayU gateway settings screen.
+     *
+     * @return string The settings URL.
+     */
+    public function get_settings_url()
+    {
+        return add_query_arg(
+            [
+                'page' => 'wc-settings',
+                'tab' => 'checkout',
+                'section' => 'wc_gateway_payu',
+            ],
+            admin_url('admin.php')
+        );
+    }
+
+    /**
+     * Warns when the stored currency setting can no longer be used.
+     *
+     * The setting is validated when it is saved, but the store currency can be
+     * changed afterwards, so the stored value is re-checked on every admin screen
+     * instead of waiting for PayU to decline the next transaction.
+     */
+    public function currency_setting_notice()
+    {
+        if (! current_user_can('manage_woocommerce') || ! class_exists('WC_Gateway_PayU')) {
+            return;
+        }
+
+        $settings = WC_PayU_Helper::get_payu_settings();
+
+        if (empty($settings['enabled']) || 'yes' !== $settings['enabled']) {
+            return;
+        }
+
+        try {
+            $this->get_main_gateway()->get_currency_code();
+        } catch (CurrencyMismatchException $e) {
+            printf(
+                '<div class="notice notice-error"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
+                esc_html__('WooCommerce PayU Gateway:', 'woocommerce-gateway-payu'),
+                esc_html($e->getMessage()),
+                esc_url($this->get_settings_url()),
+                esc_html__('Review the currency setting', 'woocommerce-gateway-payu')
+            );
+        }
     }
 
     /**
@@ -231,15 +317,7 @@ class WC_PayU
      */
     public function woocommerce_payu_plugin_links($links)
     {
-
-        $settings_url = add_query_arg(
-            [
-                'page' => 'wc-settings',
-                'tab' => 'checkout',
-                'section' => 'wc_gateway_payu',
-            ],
-            admin_url('admin.php')
-        );
+        $settings_url = $this->get_settings_url();
 
         $plugin_links = [
             '<a href="' . esc_url($settings_url) . '">' . esc_html__('Settings', 'woocommerce-gateway-payu') . '</a>',
@@ -392,7 +470,14 @@ class WC_PayU
                 'jquery'
             ]
         );
-        wp_enqueue_style('woocommerce-gateway-payu', plugins_url('/css/style.css', __FILE__), [], FALSE, 'all');
+        // Version by modification time so browsers pick up stylesheet changes immediately.
+        wp_enqueue_style(
+            'woocommerce-gateway-payu',
+            plugins_url('/css/style.css', __FILE__),
+            [],
+            (string) filemtime(plugin_dir_path(__FILE__) . 'css/style.css'),
+            'all'
+        );
 
         // Localize the script
         $translation_array = [
@@ -562,4 +647,5 @@ class WC_PayU
     }
 }
 
-new WC_PayU();
+// Use the singleton so the constructor's hooks are registered once, not again on the first get_instance() call.
+WC_PayU::get_instance();
