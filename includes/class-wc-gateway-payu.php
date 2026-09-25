@@ -279,15 +279,24 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $order->add_order_note(__('Redirecting to PayU <br />' . $set_transaction_notes, 'woocommerce-gateway-payu'));
                 $order->update_status('pending', '', true);
             }
-        } catch (Exception $e) {
-            $message = $e->getMessage();
-            $error_message = ' - ' . $message . "<br /><br />";
-            $this->log($error_message, 'critical');
+        } catch (PayUTransactionException $e) {
+            $this->log(
+                sprintf(' - Order %s: %s [%s] %s', $order_id, $e->getMessage(), $e->get_result_code(), $e->get_result_message()),
+                'critical'
+            );
 
-            return [
-                'result' => 'failure',
-                'redirect' => $order->get_checkout_payment_url()
-            ];
+            // Classic, pay-for-order and block checkout all show a thrown exception's message to the customer.
+            // Tags are stripped rather than escaped: WooCommerce escapes notices itself, so escaping here would double-encode.
+            throw new Exception(wp_strip_all_tags($e->getMessage()), 0, $e);
+        } catch (Exception $e) {
+            $this->log(sprintf(' - Order %s: %s', $order_id, $e->getMessage()), 'critical');
+
+            // Other failures (SOAP faults, configuration errors) are not written for customers.
+            throw new Exception(
+                __('We could not start your PayU payment. Please try again or choose another payment method.', 'woocommerce-gateway-payu'),
+                0,
+                $e
+            );
         }
 
         return [

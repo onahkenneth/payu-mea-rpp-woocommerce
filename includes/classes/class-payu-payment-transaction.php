@@ -116,33 +116,31 @@ class PayU_Payment_Transaction extends PayU_Payment_Base {
 	*
 	* @param array $payload Array containing the data
 	* @return stdClass response
-    * @throws Exception
+    * @throws PayUTransactionException When PayU declines the transaction.
+    * @throws Exception When the SOAP call fails.
 	*/
 	public function do_set_transaction($payload = []): stdClass
 	{
-		$data = [];
 		$response = $this->do_soap_call('setTransaction', $payload);
 		$data = $response['return'];
 
 		// If succesfull then pass back the payUreference  with return URL
-		if( isset($data['successful']) && ($data['successful'] === true) ) {
+		if (isset($data['successful']) && ($data['successful'] === true)) {
 			$data['redirect_payment_url'] = $this->get_redirect_url($data['payUReference']);
-			
+
 			return json_decode(json_encode($data));
-		} else {
-			$message = "Unspecified error. please contact merchant";
-
-			if($this->extended_debug === true) {
-				$message = $data['displayMessage'] . ", Details: " . $message = $data['resultMessage'];
-			} elseif(isset($data['displayMessage']) && !empty($data['displayMessage']) ) {
-				$message = $data['displayMessage'];
-			} elseif( isset($data['resultMessage']) && !empty($data['resultMessage']) ) {
-				$message = $data['resultMessage'];
-			}
-
-			throw new Exception($message);
 		}
-		
+
+		// displayMessage is written for the customer; resultMessage is the merchant-facing reason.
+		$display_message = !empty($data['displayMessage'])
+			? (string) $data['displayMessage']
+			: __('Unspecified error. Please contact the merchant.', 'woocommerce-gateway-payu');
+
+		throw new PayUTransactionException(
+			$display_message,
+			(string) ($data['resultCode'] ?? ''),
+			(string) ($data['resultMessage'] ?? '')
+		);
 	}
 
 	/**

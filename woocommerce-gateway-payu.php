@@ -133,6 +133,7 @@ class WC_PayU
         require_once dirname(__FILE__) . '/includes/exceptions/empty-log-string-exception.php';
         require_once dirname(__FILE__) . '/includes/exceptions/invalid-payment-method-exception.php';
         require_once dirname(__FILE__) . '/includes/exceptions/currency-mismatch-exception.php';
+        require_once dirname(__FILE__) . '/includes/exceptions/payu-transaction-exception.php';
 
         require_once dirname(__FILE__) . '/includes/constants/class-wc-payu-payment-methods.php';
 
