@@ -498,9 +498,9 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $order->payment_complete();
                 $woocommerce->cart->empty_cart();
 
+                // Transaction details are for the admin order notes only, never the storefront.
                 if ('yes' === $this->debug) {
                     $this->log->add('PayU', 'Payment complete.');
-                    wc_add_notice(__('Payment completed: <br />', 'woocommerce-gateway-payu') . $transaction_notes, 'success');
                 }
 
                 wp_redirect($this->get_return_url($order));
