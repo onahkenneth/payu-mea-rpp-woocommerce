@@ -214,10 +214,10 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
      */
     public function process_payment($order_id)
     {
-        $method = $_POST['payment_method'];
-
         try {
             $order = new WC_Order($order_id);
+            // Block checkout replaces $_POST with gateway payment data, so read the chosen gateway from the order.
+            $method = $order->get_payment_method();
             $safekey = $this->settings['safekey'];
 
             // Discovery Miles separate login credentials prefix
@@ -255,14 +255,10 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             $txnData = $this->get_transaction_data($config, $order);
             $txnData['Safekey'] = $safekey;
 
-            if ($method === WC_PayU_Payment_Methods::CARD) {
-                $txnData['TransactionType'] = $this->transaction_type;
-            } else {
-                $this->transaction_type = $this->dm_transaction_type;
-                $txnData['TransactionType'] = $this->transaction_type;
-            }
+            $transaction_type = $this->get_transaction_type_for_method($method);
+            $txnData['TransactionType'] = $transaction_type;
 
-            $order->update_meta_data('_payu_transaction_type', $this->transaction_type);
+            $order->update_meta_data('_payu_transaction_type', $transaction_type);
 
             // Do setTransaction
             $transaction = new PayU_Payment_Transaction($config);
@@ -1236,6 +1232,25 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         return $order->get_meta('_payu_transaction_type', true);
     }
 
+    /**
+     * Returns the configured transaction type for the checkout payment method.
+     *
+     * Discovery Miles has its own Transaction Type setting; every other method uses the main one.
+     *
+     * @param string|null $method The gateway ID posted at checkout, e.g. payu_discoverymiles.
+     * @return string PAYMENT or RESERVE.
+     */
+    private function get_transaction_type_for_method(?string $method): string
+    {
+        $is_discovery_miles = in_array($method, [WC_PayU_Payment_Methods::DISCOVERY_MILES, 'payu_discoverymiles'], true);
+
+        if ($is_discovery_miles && '' !== $this->dm_transaction_type) {
+            return $this->dm_transaction_type;
+        }
+
+        return $this->transaction_type;
+    }
+
     private function validate_amount_paid(): bool
     {
         $amount_due = $this->get_total_due();
@@ -1252,7 +1267,11 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             $this->save_card_id($order);
         }
 
-        if ('RESERVE' == $this->transaction_type) {
+        // Use the type sent to PayU for this order: only RESERVE leaves the payment awaiting capture.
+        // PAYMENT authorises and captures in one leg. Orders without the meta fall back to the setting.
+        $transaction_type = $this->get_transaction_type($order) ?: $this->transaction_type;
+
+        if ('RESERVE' === $transaction_type) {
             $order->update_meta_data('_payu_transaction_captured', 'no');
             $order->update_meta_data('_payu_transaction_captured_amount', 0);
         } else {
