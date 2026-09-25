@@ -481,7 +481,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             if ($this->is_payment_successful()) {
                 $transaction_notes = "PayU Reference: " . $this->get_payu_reference() . "<br /> ";
 
-                $transaction_notes .= $this->get_payment_method_details($transaction_notes);
+                $transaction_notes = $this->get_payment_method_details($transaction_notes);
 
                 if ($this->get_recurring_details() != null && is_array($this->get_recurring_details())) {
                     $transaction_notes .= "<br /><br />Recurring Details:";
@@ -618,7 +618,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
                 $transaction_notes .= "Merchant Reference : " . $this->get_merchant_reference() . "<br />";
                 $transaction_notes .= "PayU Reference: " . $this->get_payu_reference() . "<br />";
                 $transaction_notes .= "PayU Payment Status: " . $this->get_transaction_state() . "<br /><br />";
-                $transaction_notes .= $this->get_payment_method_details($transaction_notes);
+                $transaction_notes = $this->get_payment_method_details($transaction_notes);
 
                 $this->save_payu_transaction_data($order);
 

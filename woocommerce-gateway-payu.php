@@ -49,6 +49,8 @@ class WC_PayU
 
         add_action('add_meta_boxes', [$this, 'add_meta_boxes'], 10, 2);
 
+        add_action('woocommerce_before_thankyou', [$this, 'output_thankyou_notices']);
+
         add_filter(
             'plugin_action_links_' . plugin_basename(__FILE__),
             [
@@ -236,6 +238,26 @@ class WC_PayU
             && isset($_GET['page'], $_GET['tab'])
             && 'wc-settings' === sanitize_key(wp_unslash($_GET['page']))
             && 'checkout' === sanitize_key(wp_unslash($_GET['tab']));
+    }
+
+    /**
+     * Prints notices queued by the PayU return callback on the order received page.
+     *
+     * WooCommerce does not print notices on the thank-you page, and Storefront skips
+     * them on checkout pages, so they would otherwise only appear on the next page load.
+     *
+     * @param int $order_id The order being confirmed.
+     * @return void
+     */
+    public function output_thankyou_notices($order_id)
+    {
+        $order = wc_get_order($order_id);
+
+        if (!$order || 0 !== strpos($order->get_payment_method(), WC_Gateway_PayU::ID)) {
+            return;
+        }
+
+        woocommerce_output_all_notices();
     }
 
     /**
@@ -625,4 +647,5 @@ class WC_PayU
     }
 }
 
-new WC_PayU();
+// Use the singleton so the constructor's hooks are registered once, not again on the first get_instance() call.
+WC_PayU::get_instance();
