@@ -214,16 +214,27 @@ class WC_PayU
             $methods[] = $main_gateway;
         }
 
-        $payment_methods = $main_gateway->payment_methods;
-
-        if (is_admin() && isset($_GET['section']) && $_GET['section'] === 'wc_gateway_payu') {
-            unset($payment_methods[WC_PayU_Payment_Methods::CARD]);
-            unset($payment_methods[WC_PayU_Payment_Methods::DISCOVERY_MILES]);
+        // Card and Discovery Miles are configured inside "PayU Secure Payments",
+        // so they must not be listed as separate gateways on the Payments settings screens.
+        if ($this->is_payments_settings_screen()) {
+            return $methods;
         }
 
-        $methods = array_merge($methods, $payment_methods);
+        return array_merge($methods, $main_gateway->payment_methods);
+    }
 
-        return $methods;
+    /**
+     * Whether the current request is the WooCommerce Payments settings tab
+     * (the gateway list or any gateway's settings section).
+     *
+     * @return bool
+     */
+    private function is_payments_settings_screen()
+    {
+        return is_admin()
+            && isset($_GET['page'], $_GET['tab'])
+            && 'wc-settings' === sanitize_key(wp_unslash($_GET['page']))
+            && 'checkout' === sanitize_key(wp_unslash($_GET['tab']));
     }
 
     /**
@@ -436,7 +447,14 @@ class WC_PayU
                 'jquery'
             ]
         );
-        wp_enqueue_style('woocommerce-gateway-payu', plugins_url('/css/style.css', __FILE__), [], FALSE, 'all');
+        // Version by modification time so browsers pick up stylesheet changes immediately.
+        wp_enqueue_style(
+            'woocommerce-gateway-payu',
+            plugins_url('/css/style.css', __FILE__),
+            [],
+            (string) filemtime(plugin_dir_path(__FILE__) . 'css/style.css'),
+            'all'
+        );
 
         // Localize the script
         $translation_array = [

@@ -95,6 +95,11 @@ $settings = [
         'description' =>  __('Supported Transaction Types', 'woocommerce-gateway-payu'),
         'options' => $order_tx_type,
     ],
+    'dm_divider' => [
+        'title' => '',
+        'type' => 'title',
+        'class' => 'payu-settings-divider',
+    ],
     'dm_enabled' => [
         'title' => __('Discovery Miles', 'woocommerce-gateway-payu'),
         'type' => 'checkbox',
@@ -128,6 +133,11 @@ $settings = [
         'title' => __('Discovery Miles Password', 'woocommerce-gateway-payu'),
         'type' => 'text',
         'description' => __('Given to Merchant by PayU', 'woocommerce-gateway-payu'),
+    ],
+    'debug_divider' => [
+        'title' => '',
+        'type' => 'title',
+        'class' => 'payu-settings-divider',
     ],
     'debug' => [
         'title' => __('Debug Log', 'woocommerce-gateway-payu'),
