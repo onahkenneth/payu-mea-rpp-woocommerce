@@ -50,7 +50,7 @@ abstract class PayU_Payment_Base {
 	* Do the logging of various given strings and an optional instruction
 	*
 	* @param ?string $string_to_log String to log
-	* @param array $instruction_to_log Instruction to log the string against e.g. a soap function called
+	* @param ?string $instruction_to_log Instruction to log the string against e.g. a soap function called
 	*
 	* @return void
 	*/
