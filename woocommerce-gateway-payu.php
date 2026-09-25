@@ -100,6 +100,7 @@ class WC_PayU
 
         if (is_admin()) {
             add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_scripts']);
+            add_action('admin_notices', [$this, 'currency_setting_notice']);
         }
     }
 
@@ -131,11 +132,13 @@ class WC_PayU
     {
         require_once dirname(__FILE__) . '/includes/exceptions/empty-log-string-exception.php';
         require_once dirname(__FILE__) . '/includes/exceptions/invalid-payment-method-exception.php';
+        require_once dirname(__FILE__) . '/includes/exceptions/currency-mismatch-exception.php';
 
         require_once dirname(__FILE__) . '/includes/constants/class-wc-payu-payment-methods.php';
 
         require_once dirname(__FILE__) . '/includes/class-wc-payu-mode.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-helper.php';
+        require_once dirname(__FILE__) . '/includes/class-wc-payu-currency.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-utils.php';
         require_once dirname(__FILE__) . '/includes/class-wc-payu-xml-parser.php';
         require_once dirname(__FILE__) . '/includes/class-wc-gateway-payu.php';
@@ -224,15 +227,13 @@ class WC_PayU
     }
 
     /**
-     * Add links to plugin description
+     * Returns the URL of the PayU gateway settings screen.
      *
-     * @param array $links
-     * @return array
+     * @return string The settings URL.
      */
-    public function woocommerce_payu_plugin_links($links)
+    public function get_settings_url()
     {
-
-        $settings_url = add_query_arg(
+        return add_query_arg(
             [
                 'page' => 'wc-settings',
                 'tab' => 'checkout',
@@ -240,6 +241,49 @@ class WC_PayU
             ],
             admin_url('admin.php')
         );
+    }
+
+    /**
+     * Warns when the stored currency setting can no longer be used.
+     *
+     * The setting is validated when it is saved, but the store currency can be
+     * changed afterwards, so the stored value is re-checked on every admin screen
+     * instead of waiting for PayU to decline the next transaction.
+     */
+    public function currency_setting_notice()
+    {
+        if (! current_user_can('manage_woocommerce') || ! class_exists('WC_Gateway_PayU')) {
+            return;
+        }
+
+        $settings = WC_PayU_Helper::get_payu_settings();
+
+        if (empty($settings['enabled']) || 'yes' !== $settings['enabled']) {
+            return;
+        }
+
+        try {
+            $this->get_main_gateway()->get_currency_code();
+        } catch (CurrencyMismatchException $e) {
+            printf(
+                '<div class="notice notice-error"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
+                esc_html__('WooCommerce PayU Gateway:', 'woocommerce-gateway-payu'),
+                esc_html($e->getMessage()),
+                esc_url($this->get_settings_url()),
+                esc_html__('Review the currency setting', 'woocommerce-gateway-payu')
+            );
+        }
+    }
+
+    /**
+     * Add links to plugin description
+     *
+     * @param array $links
+     * @return array
+     */
+    public function woocommerce_payu_plugin_links($links)
+    {
+        $settings_url = $this->get_settings_url();
 
         $plugin_links = [
             '<a href="' . esc_url($settings_url) . '">' . esc_html__('Settings', 'woocommerce-gateway-payu') . '</a>',

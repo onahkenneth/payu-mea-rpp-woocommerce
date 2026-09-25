@@ -151,6 +151,65 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
     }
 
     /**
+     * Returns every currency supported by the gateway's payment methods.
+     *
+     * @return string[]
+     */
+    public function get_supported_currencies()
+    {
+        $currencies = [];
+
+        foreach ($this->payment_methods as $payment_method) {
+            $currencies = array_merge($currencies, (array) $payment_method->get_supported_currencies());
+        }
+
+        return array_values(array_unique($currencies));
+    }
+
+    /**
+     * Returns the configured currency code, validated against the amount being charged.
+     *
+     * @param WC_Order|null $order The order being charged, or null to validate against the store currency.
+     * @return string The validated currency code.
+     * @throws CurrencyMismatchException When the configured currency is unsupported or does not match the amount.
+     */
+    public function get_currency_code($order = null)
+    {
+        $configured = $this->settings['currency'] ?? '';
+        $expected = $order instanceof WC_Order ? $order->get_currency() : get_woocommerce_currency();
+        $error = WC_PayU_Currency::get_error($configured, $expected, $this->get_supported_currencies());
+
+        if ('' !== $error) {
+            throw new CurrencyMismatchException($error);
+        }
+
+        return WC_PayU_Currency::normalize($configured);
+    }
+
+    /**
+     * Validates and normalises the currency setting before it is saved.
+     *
+     * Rejecting the value here surfaces a misconfiguration in the admin instead of
+     * letting PayU decline every transaction made with it.
+     *
+     * @param string $key The field key.
+     * @param string $value The submitted value.
+     * @return string The normalised currency, or the previously saved one when the submitted value is invalid.
+     */
+    public function validate_currency_field($key, $value)
+    {
+        $currency = WC_PayU_Currency::normalize($value);
+        $error = WC_PayU_Currency::get_error($currency, get_woocommerce_currency(), $this->get_supported_currencies());
+
+        if ('' !== $error) {
+            WC_Admin_Settings::add_error($error);
+            return $this->get_option($key);
+        }
+
+        return $currency;
+    }
+
+    /**
      * Process the payment and return the result
      */
     public function process_payment($order_id)
@@ -578,6 +637,14 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         }
     }
 
+    /**
+     * Capture transaction
+     *
+     * @param string $transaction_uid The transaction uid.
+     * @param string $order_id The order id.
+     * @param float $amount The amount to capture.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
+     */
     public function capture_transaction($transaction_uid, $order_id, $amount)
     {
         $config = $this->get_configuration();
@@ -592,7 +659,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ],
             'Creditcard' => [
                 'amountInCents' => $amount * 100,
@@ -606,6 +673,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
      * @param string $transaction_uid The transaction uid.
      * @param string $order_id The order id.
      * @param float $amount The amount to refund.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
      */
     public function refund_transaction($transaction_uid, $order_id, $amount)
     {
@@ -621,7 +689,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ]
         ]);
     }
@@ -632,6 +700,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
      * @param string $transaction_uid The transaction uid.
      * @param string $order_id The order id.
      * @param float $amount The amount to void.
+     * @throws CurrencyMismatchException When the configured currency cannot be used for the order.
      */
     public function void_transaction($transaction_uid, $order_id, $amount)
     {
@@ -647,7 +716,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
             ],
             'Basket' => [
                 'amountInCents' => $amount * 100,
-                'currencyCode' => $this->settings['currency']
+                'currencyCode' => $this->get_currency_code(wc_get_order($order_id))
             ],
             'Creditcard' => [
                 'amountInCents' => $amount * 100,
@@ -861,7 +930,7 @@ class WC_Gateway_PayU extends WC_Payment_Gateway
         $float_amount = $woocommerce_format * 100;
         $basket['amountInCents'] = (int) $float_amount;
         $basket['description'] = 'Order No:' . (string)$order_id;
-        $basket['currencyCode'] = $this->settings['currency'];
+        $basket['currencyCode'] = $this->get_currency_code($order);
 
         //Add Basket
         $txnData = array_merge($txnData, ['Basket' => $basket]);
